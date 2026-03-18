@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,11 +32,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,9 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.projektamrheal.ui.theme.ProjekTamRhealTheme
 import model.Event
-import model.EventSource
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +63,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ProjekTamRhealTheme {
+                val viewModel: EventViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsState()
+
                 Scaffold(
                     topBar = {
                         CenterAlignedTopAppBar(
@@ -77,6 +85,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     EventList(
+                        events = uiState.events,
+                        likedEventIds = uiState.likedEventIds,
+                        onLikeClick = { eventName -> viewModel.toggleLike(eventName) },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -86,13 +97,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun EventList(modifier: Modifier = Modifier) {
+fun EventList(
+    events: List<Event>,
+    likedEventIds: Set<String>,
+    onLikeClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface),
         verticalArrangement = Arrangement.spacedBy(20.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         item {
             Text(
@@ -102,14 +118,23 @@ fun EventList(modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        items(EventSource.dummyEvent) { event ->
-            EventItem(event = event)
+        items(events) { event ->
+            EventItem(
+                event = event,
+                isLiked = likedEventIds.contains(event.nama),
+                onLikeClick = { onLikeClick(event.nama) }
+            )
         }
     }
 }
 
 @Composable
-fun EventItem(event: Event, modifier: Modifier = Modifier) {
+fun EventItem(
+    event: Event,
+    isLiked: Boolean,
+    onLikeClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -135,12 +160,28 @@ fun EventItem(event: Event, modifier: Modifier = Modifier) {
                             )
                         )
                 )
-                
 
                 SurfaceBadge(
                     text = if (event.htm == 0) "GRATIS" else "Rp ${event.htm}",
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
                 )
+
+                // Tombol Jempol (Like)
+                IconButton(
+                    onClick = onLikeClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.7f))
+                ) {
+                    Icon(
+                        imageVector = if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                        contentDescription = "Like",
+                        tint = if (isLiked) MaterialTheme.colorScheme.primary else Color.Gray,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             Column(modifier = Modifier.padding(20.dp)) {
@@ -151,12 +192,12 @@ fun EventItem(event: Event, modifier: Modifier = Modifier) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Info,
+                        imageVector = Icons.Default.Info,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = Color.Gray
@@ -172,7 +213,7 @@ fun EventItem(event: Event, modifier: Modifier = Modifier) {
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
-                
+
                 Button(
                     onClick = { /* Handle Click */ },
                     modifier = Modifier
@@ -215,6 +256,6 @@ fun SurfaceBadge(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun EventPreview() {
     ProjekTamRhealTheme {
-        EventList()
+        EventList(events = emptyList(), likedEventIds = emptySet(), onLikeClick = {})
     }
 }
