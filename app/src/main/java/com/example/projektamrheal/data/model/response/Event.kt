@@ -1,4 +1,4 @@
-package model
+package com.example.projektamrheal.data.model.response
 
 import com.google.gson.annotations.SerializedName
 

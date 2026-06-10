@@ -50,12 +50,19 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     
+    // Icons
+    implementation("androidx.compose.material:material-icons-extended")
+    
     // Retrofit & Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     
     // Image Loading
     implementation(libs.coil.compose)
+    
+    // Splash Screen & Activity KTX
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.activity:activity-ktx:1.9.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

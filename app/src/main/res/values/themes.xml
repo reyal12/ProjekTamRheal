@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <!-- Tema Utama Aplikasi -->
     <style name="Theme.ProjekTamRheal" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Tema Splash Screen -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Latar belakang splash screen -->
+        <item name="windowSplashScreenBackground">#2196F3</item>
+
+        <!-- Ikon yang akan muncul di tengah -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+
+        <!-- Durasi ikon muncul (dalam milidetik) -->
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+
+        <!-- Tema yang digunakan SETELAH splash screen selesai -->
+        <item name="postSplashScreenTheme">@style/Theme.ProjekTamRheal</item>
+    </style>
 </resources>
