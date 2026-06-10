@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,14 +24,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -57,15 +59,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.projektamrheal.ui.theme.ProjekTamRhealTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -117,24 +122,51 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        if (selectedEvent == null) {
-                            EventList(
-                                events = uiState.events,
-                                onEventClick = { event -> selectedEvent = event }
-                            )
-                        } else {
-                            EventDetailScreen(
-                                event = selectedEvent!!,
-                                onRegisterSuccess = { message ->
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(message)
-                                    }
+                        when {
+                            uiState.isLoading -> {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
                                 }
-                            )
+                            }
+                            uiState.isError -> {
+                                ErrorScreen(onRetry = { viewModel.loadEvents() })
+                            }
+                            selectedEvent == null -> {
+                                EventList(
+                                    events = uiState.events,
+                                    onEventClick = { event -> selectedEvent = event }
+                                )
+                            }
+                            else -> {
+                                EventDetailScreen(
+                                    event = selectedEvent!!,
+                                    onRegisterSuccess = { message ->
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(message)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ErrorScreen(onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Red)
+        Text(text = "Gagal memuat data", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("Coba Lagi")
         }
     }
 }
@@ -146,6 +178,13 @@ fun EventList(
     modifier: Modifier = Modifier
 ) {
     val categories = listOf("Semua", "Musik", "Olahraga", "Kuliner", "Edukasi", "Seni")
+    var selectedCategory by remember { mutableStateOf("Semua") }
+
+    val filteredEvents = if (selectedCategory == "Semua") {
+        events
+    } else {
+        events.filter { it.kategori.equals(selectedCategory, ignoreCase = true) }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -167,13 +206,17 @@ fun EventList(
                     modifier = Modifier.padding(vertical = 12.dp)
                 ) {
                     items(categories) { category ->
-                        CategoryChip(category = category, isSelected = category == "Semua")
+                        CategoryChip(
+                            category = category, 
+                            isSelected = category == selectedCategory,
+                            onClick = { selectedCategory = category }
+                        )
                     }
                 }
             }
         }
 
-        items(events) { event ->
+        items(filteredEvents) { event ->
             EventItemCard(
                 event = event,
                 onMasukClick = { onEventClick(event) }
@@ -199,13 +242,19 @@ fun EventItemCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = event.imageRes),
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(event.imageUrl)
+                    .crossfade(true)
+                    .allowHardware(false)
+                    .build(),
                 contentDescription = null,
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                error = painterResource(id = android.R.drawable.stat_notify_error)
             )
             
             Spacer(modifier = Modifier.width(16.dp))
@@ -255,11 +304,17 @@ fun EventDetailScreen(
             .background(MaterialTheme.colorScheme.surface)
     ) {
         Box(modifier = Modifier.height(300.dp)) {
-            Image(
-                painter = painterResource(id = event.imageRes),
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(event.imageUrl)
+                    .crossfade(true)
+                    .allowHardware(false)
+                    .build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                error = painterResource(id = android.R.drawable.stat_notify_error)
             )
             Box(
                 modifier = Modifier
@@ -283,20 +338,47 @@ fun EventDetailScreen(
         }
 
         Column(modifier = Modifier.padding(24.dp)) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (event.htm == 0) "GRATIS" else "HTM: Rp ${event.htm}",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = if (event.htm == 0) "GRATIS" else "HTM: Rp ${event.htm}",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = event.kategori,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Info Tanggal, Waktu, Lokasi
+            DetailInfoRow(icon = Icons.Default.Info, label = "Tanggal", text = event.tanggal)
+            Spacer(modifier = Modifier.height(12.dp))
+            DetailInfoRow(icon = Icons.Default.CheckCircle, label = "Waktu", text = event.waktu)
+            Spacer(modifier = Modifier.height(12.dp))
+            DetailInfoRow(icon = Icons.Default.Notifications, label = "Lokasi", text = event.lokasi)
+
+            Spacer(modifier = Modifier.height(24.dp))
             
             Text(
                 text = "Deskripsi Event",
@@ -347,9 +429,40 @@ fun EventDetailScreen(
 }
 
 @Composable
-fun CategoryChip(category: String, isSelected: Boolean) {
+fun DetailInfoRow(icon: ImageVector, label: String, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = label, 
+                style = MaterialTheme.typography.labelSmall, 
+                color = Color.Gray
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+fun CategoryChip(
+    category: String, 
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
     Surface(
-        modifier = Modifier.clip(RoundedCornerShape(12.dp)),
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() },
         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     ) {
         Text(
