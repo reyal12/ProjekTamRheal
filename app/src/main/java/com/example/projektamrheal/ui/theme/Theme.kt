@@ -51,8 +51,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun ProjekTamRhealTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Disabled for consistent InfoEvent look
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

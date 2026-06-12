@@ -23,14 +23,14 @@ class EventViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, isError = false) }
             
-            // Delay agar splash screen terlihat
-            delay(3000) 
+            delay(2000)
             
             try {
                 val listResult = repository.getEvents()
                 _uiState.update { 
                     it.copy(
                         events = listResult,
+                        recommendedEvents = listResult.shuffled().take(3), // Mengambil 3 event acak sebagai rekomendasi
                         isLoading = false,
                         isError = false
                     )

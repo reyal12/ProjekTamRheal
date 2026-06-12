@@ -2,7 +2,7 @@ package com.example.projektamrheal.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Custom Color Scheme (InfoEvent Theme)
+
 val PrimaryBlue = Color(0xFF0061A4)
 val OnPrimaryWhite = Color(0xFFFFFFFF)
 val PrimaryContainerBlue = Color(0xFFD1E4FF)

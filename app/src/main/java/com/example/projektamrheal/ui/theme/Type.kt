@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Custom Typography for InfoEvent
+
 val Typography = Typography(
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
